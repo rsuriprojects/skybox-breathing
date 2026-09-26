@@ -82,12 +82,14 @@
     animation: twinkle var(--d, 4s) ease-in-out infinite var(--delay, 0s);
   }
   @keyframes twinkle { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+  /* Safari stops drawing just above its bottom buttons; the last 90px are solid so that cut is invisible */
   .bottom-fade {
-    position: fixed; left: 0; right: 0; bottom: 0; height: 110px; z-index: 0; pointer-events: none;
+    position: fixed; left: 0; right: 0; bottom: 0; height: 260px; z-index: 0; pointer-events: none;
     background: linear-gradient(180deg,
       color-mix(in srgb, var(--sky-top) 0%, transparent) 0%,
-      color-mix(in srgb, var(--sky-top) 18%, transparent) 35%,
-      color-mix(in srgb, var(--sky-top) 55%, transparent) 70%,
+      color-mix(in srgb, var(--sky-top) 22%, transparent) 25%,
+      color-mix(in srgb, var(--sky-top) 60%, transparent) 48%,
+      var(--sky-top) 65%,
       var(--sky-top) 100%);
   }
   .cloud {
@@ -576,6 +578,9 @@
     input.addEventListener("change", () => setCustomMinutes(+input.value));
   }
 
+  const isIOSTopLevel = window.self === window.top &&
+    (/iPhone|iPad|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1));
+
   function applySky() {
     document.documentElement.dataset.sky = settings.sky;
     let meta = document.querySelector('meta[name="theme-color"]');
@@ -594,12 +599,13 @@
       el.appendChild(option("sky-opt", `<span class="swatch" style="background:${s.swatch}"></span>${s.name}`, settings.sky === s.id, () => {
         settings.sky = s.id;
         applySky();
-        // nudge Safari to re-read its bar color (it otherwise waits for a reload)
-        requestAnimationFrame(() => {
-          window.scrollBy(0, 1);
-          requestAnimationFrame(() => window.scrollBy(0, -1));
-        });
         renderSkies();
+        // iOS Safari only re-reads its bar color on load, so reload (unless mid-session) and reopen settings
+        if (isIOSTopLevel && !state.started) {
+          save();
+          try { sessionStorage.setItem("skybox-reopen-settings", "1"); } catch {}
+          location.reload();
+        }
         save();
       }));
     });
@@ -894,6 +900,12 @@
   bindToggles();
   draw(0, 0);
   updateIdle();
+  try {
+    if (sessionStorage.getItem("skybox-reopen-settings")) {
+      sessionStorage.removeItem("skybox-reopen-settings");
+      setDrawer(true);
+    }
+  } catch {}
 })();
 </script>
 </body>

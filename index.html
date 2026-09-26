@@ -65,7 +65,8 @@
   * { box-sizing: border-box; margin: 0; }
   /* Safari colors both of its bars from this one color, so it matches the top of the sky */
   /* no transition here: Safari reads this color for its bars the moment the sky changes */
-  html { height: 100%; overflow: hidden; overscroll-behavior: none; background: var(--sky-top); }
+  /* no overflow lock: Safari seems to stop re-reading its bar colors on a locked page; the layout just fits instead */
+  html { height: 100%; background: var(--sky-top); }
   /* one-screen app: the square shrinks on short screens so everything fits without scrolling */
   :root { --box: min(82vw, 480px, calc(100vh - 400px)); }
   @supports (height: 100dvh) { :root { --box: min(82vw, 480px, calc(100dvh - 400px)); } }
@@ -74,9 +75,7 @@
     color: var(--ink);
     /* the fixed .sky layer paints the gradient; this solid color only shows in the strip Safari leaves under its toolbar */
     background: var(--sky-top);
-    height: 100%;
-    overflow: hidden;
-    overscroll-behavior: none;
+    min-height: 100%;
     display: flex; flex-direction: column;
     transition: color 0.8s ease;
     -webkit-font-smoothing: antialiased;

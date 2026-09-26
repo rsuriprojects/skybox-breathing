@@ -60,7 +60,7 @@
   body {
     font-family: var(--sans);
     color: var(--ink);
-    background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 48%, var(--sky-low) 84%, var(--sky-top) 100%);
+    background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 55%, var(--sky-low) 100%);
     min-height: 100vh;
     overflow-x: hidden;
     transition: color 0.8s ease;
@@ -72,8 +72,7 @@
   /* ---------- sky layers ---------- */
   .sky {
     position: fixed; inset: -12vh 0; pointer-events: none; z-index: 0; overflow: hidden;
-    /* screen spans 9.7%–90.3% of this 124vh layer; the bottom fades back to --sky-top to meet Safari's bottom bar */
-    background: linear-gradient(180deg, var(--sky-top) 9.7%, var(--sky-mid) 48%, var(--sky-low) 78%, var(--sky-top) 90.3%);
+    background: linear-gradient(180deg, var(--sky-top) 12%, var(--sky-mid) 55%, var(--sky-low) 88%);
   }
   .stars { position: absolute; inset: 0; opacity: var(--star-opacity); transition: opacity 1.2s ease; }
   .star {
@@ -81,6 +80,14 @@
     animation: twinkle var(--d, 4s) ease-in-out infinite var(--delay, 0s);
   }
   @keyframes twinkle { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+  .bottom-fade {
+    position: fixed; left: 0; right: 0; bottom: 0; height: 110px; z-index: 0; pointer-events: none;
+    background: linear-gradient(180deg,
+      color-mix(in srgb, var(--sky-top) 0%, transparent) 0%,
+      color-mix(in srgb, var(--sky-top) 18%, transparent) 35%,
+      color-mix(in srgb, var(--sky-top) 55%, transparent) 70%,
+      var(--sky-top) 100%);
+  }
   .cloud {
     position: absolute; border-radius: 50%; background: var(--cloud);
     filter: blur(28px); transition: background 1.2s ease;
@@ -288,6 +295,7 @@
     <div class="stars" id="stars"></div>
     <div id="clouds"></div>
   </div>
+  <div class="bottom-fade" aria-hidden="true"></div>
 
   <header class="topbar fadeable">
     <h1>Sky<em>box</em> breathing</h1>

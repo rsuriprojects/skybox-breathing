@@ -638,11 +638,14 @@
         settings.sky = s.id;
         applySky();
         renderSkies();
-        // iOS Safari only re-reads its bar color on load, so reload (unless mid-session) and reopen settings
+        // iOS Safari only re-reads its bar color on a fresh page load, and a script reload() doesn't count,
+        // so open the page at a new address for this sky (unless mid-session) and reopen settings
         if (isIOSTopLevel && !state.started) {
           save();
           try { sessionStorage.setItem("skybox-reopen-settings", "1"); } catch {}
-          location.reload();
+          const url = new URL(location.href);
+          url.searchParams.set("sky", s.id);
+          location.replace(url.href);
         }
         save();
       }));

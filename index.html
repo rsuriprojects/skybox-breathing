@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=3" />
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=4" />
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png" />
 <link rel="manifest" href="manifest.webmanifest" />
 <script>
@@ -20,10 +20,10 @@
       (saved && saved.sky) || (matchMedia("(prefers-color-scheme: dark)").matches ? "night" : "day"));
   } catch (e) {}
 
-  // Size the page to the space the phone really gives it. Opened from the home screen, the user's
-  // iPhone starts the page below the clock (the page reaches the bottom of the screen) but still
-  // reports the clock's height as a top inset; counting it again pushed the title down and made the
-  // page taller than the screen. The phone's numbers settle only after launch, so measure repeatedly.
+  // Size the page to the height the phone really gives it (its numbers settle only after launch, so
+  // measure repeatedly). Opened from the home screen, the user's iPhone draws the page from the top of
+  // the screen, under the clock, but stops it short of the bottom; the phone paints that leftover strip
+  // itself in the html background color, which home screen mode sets to the sky's bottom color.
   (function () {
     var root = document.documentElement;
     try { history.scrollRestoration = "manual"; } catch (e) {}
@@ -35,11 +35,7 @@
       var h = window.visualViewport ? Math.round(window.visualViewport.height) : window.innerHeight;
       root.style.setProperty("--app-h", h + "px");
       var standalone = isStandalone();
-      var screenLong = Math.max(screen.width, screen.height);
-      var viewLong = Math.max(window.innerWidth, h);
-      var belowClock = standalone && screenLong - viewLong > 20;
       root.classList.toggle("standalone", !!standalone);
-      root.style.setProperty("--inset-top", belowClock ? "0px" : "env(safe-area-inset-top, 0px)");
       // home screen mode always opens at the top (the phone otherwise restores an old scroll position)
       if (standalone && (window.scrollY || document.documentElement.scrollTop)) window.scrollTo(0, 0);
     }
@@ -361,6 +357,8 @@
   :root.standalone .edge-fade { display: none; }
   /* no Safari bars to upset here, so lock scrolling: the page can never slide and show the background */
   :root.standalone, :root.standalone body { height: 100%; overflow: hidden; overscroll-behavior: none; }
+  /* the phone paints the strip below the page in this color, so match the bottom of the sky */
+  :root.standalone { background: var(--sky-low); }
 
   /* phones: Safari's bars stay --sky-top, so overlays must not tint the screen edges */
   @media (hover: none) and (pointer: coarse) {
@@ -680,7 +678,8 @@
       meta.name = "theme-color";
       document.head.appendChild(meta);
     }
-    meta.content = (SKIES.find((k) => k.id === settings.sky) || SKIES[0]).top;
+    const sky = SKIES.find((k) => k.id === settings.sky) || SKIES[0];
+    meta.content = isStandalone ? getComputedStyle(document.documentElement).getPropertyValue("--sky-low").trim() || sky.top : sky.top;
   }
 
   // Safari on iPhone only updates its top and bottom bars when you reload the page yourself

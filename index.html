@@ -55,8 +55,15 @@
   }
 
   * { box-sizing: border-box; margin: 0; }
-  /* html carries the sky's bottom color, which Safari shows behind its bottom bar; the top is covered by the page */
   html { min-height: 100%; background: var(--sky-low); transition: background 0.8s; }
+  /* Safari tints its top and bottom bars from full-width fixed strips at the screen edges,
+     so each strip carries the sky color at that edge */
+  .edge {
+    position: fixed; left: 0; right: 0; z-index: 0; pointer-events: none;
+    transition: background 0.8s;
+  }
+  .edge.top { top: 0; height: max(6px, env(safe-area-inset-top, 0px)); background: var(--sky-top); }
+  .edge.bottom { bottom: 0; height: max(6px, env(safe-area-inset-bottom, 0px)); background: var(--sky-low); }
   body {
     font-family: var(--sans);
     color: var(--ink);
@@ -287,6 +294,8 @@
     <div class="stars" id="stars"></div>
     <div id="clouds"></div>
   </div>
+  <div class="edge top" aria-hidden="true"></div>
+  <div class="edge bottom" aria-hidden="true"></div>
 
   <header class="topbar fadeable">
     <h1>Sky<em>box</em> breathing</h1>

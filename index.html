@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-sky="day">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Skybox Breathing</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -29,13 +29,13 @@
     --serif: "Fraunces", Georgia, serif;
     --sans: "Manrope", system-ui, sans-serif;
   }
-  body[data-sky="dawn"] {
+  :root[data-sky="dawn"] {
     --sky-top: #f4a79a; --sky-mid: #fbd3bd; --sky-low: #c9e4f8;
     --ink: #4a2432; --ink-soft: rgba(74, 36, 50, 0.6); --ink-faint: rgba(74, 36, 50, 0.38);
     --accent: #d8665a; --accent-soft: rgba(216, 102, 90, 0.12); --accent-glow: rgba(216, 102, 90, 0.45);
     --track: rgba(74, 36, 50, 0.14);
   }
-  body[data-sky="dusk"] {
+  :root[data-sky="dusk"] {
     color-scheme: dark;
     --sky-top: #33407e; --sky-mid: #8a6bb0; --sky-low: #f1a7a0;
     --ink: #fff7f4; --ink-soft: rgba(255, 247, 244, 0.72); --ink-faint: rgba(255, 247, 244, 0.45);
@@ -44,7 +44,7 @@
     --track: rgba(255, 255, 255, 0.22); --cloud: rgba(255, 214, 220, 0.5);
     --breath: rgba(255, 220, 230, 0.3); --breath-hi: rgba(255, 235, 240, 0.42); --star-opacity: 0.5; --on-accent: #1d1840;
   }
-  body[data-sky="night"] {
+  :root[data-sky="night"] {
     color-scheme: dark;
     --sky-top: #070e27; --sky-mid: #14224f; --sky-low: #2c4677;
     --ink: #e8f0ff; --ink-soft: rgba(232, 240, 255, 0.66); --ink-faint: rgba(232, 240, 255, 0.4);
@@ -55,12 +55,12 @@
   }
 
   * { box-sizing: border-box; margin: 0; }
-  html, body { min-height: 100%; }
+  /* html carries the sky color too, so Safari's bars and overscroll never show white */
+  html { min-height: 100%; background: var(--sky-top); overscroll-behavior-y: none; transition: background 0.8s; }
   body {
     font-family: var(--sans);
     color: var(--ink);
     background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 55%, var(--sky-low) 100%);
-    background-attachment: fixed;
     min-height: 100vh;
     overflow-x: hidden;
     transition: color 0.8s ease;
@@ -70,7 +70,10 @@
   :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
 
   /* ---------- sky layers ---------- */
-  .sky { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+  .sky {
+    position: fixed; inset: -12vh 0; pointer-events: none; z-index: 0; overflow: hidden;
+    background: linear-gradient(180deg, var(--sky-top) 12%, var(--sky-mid) 55%, var(--sky-low) 88%);
+  }
   .stars { position: absolute; inset: 0; opacity: var(--star-opacity); transition: opacity 1.2s ease; }
   .star {
     position: absolute; border-radius: 50%; background: #fff;
@@ -88,7 +91,7 @@
   .topbar {
     position: relative; z-index: 2;
     display: flex; align-items: center; justify-content: space-between; gap: 16px;
-    padding: 28px clamp(16px, 4vw, 48px) 0;
+    padding: calc(28px + env(safe-area-inset-top, 0px)) clamp(16px, 4vw, 48px) 0;
   }
   h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(24px, 3vw, 30px); letter-spacing: -0.01em; }
   h1 em { font-style: italic; font-weight: 300; color: var(--accent); transition: color 0.8s; }
@@ -251,6 +254,7 @@
   input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #fff; border: 2.5px solid var(--accent); box-shadow: 0 2px 8px var(--accent-glow); }
   input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: #fff; border: 2.5px solid var(--accent); }
 
+  .toggle[hidden] { display: none; }
   .toggle { display: flex; align-items: center; justify-content: space-between; font-size: 14px; font-weight: 500; cursor: pointer; gap: 12px; }
   .toggle input { appearance: none; -webkit-appearance: none; width: 34px; height: 20px; border-radius: 20px; background: var(--track); position: relative; cursor: pointer; transition: background 0.2s; flex-shrink: 0; }
   .toggle input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
@@ -278,7 +282,7 @@
   }
 </style>
 </head>
-<body data-sky="day">
+<body>
   <div class="sky" aria-hidden="true">
     <div class="stars" id="stars"></div>
     <div id="clouds"></div>
@@ -371,7 +375,7 @@
     <div class="group">
       <div class="group-title">Cues</div>
       <label class="toggle">Soft chime on each phase <input type="checkbox" id="soundToggle" /></label>
-      <label class="toggle">Vibrate (phones) <input type="checkbox" id="hapticToggle" /></label>
+      <label class="toggle" id="hapticRow">Vibrate (phones) <input type="checkbox" id="hapticToggle" /></label>
       <label class="toggle">Fade everything but the square while breathing <input type="checkbox" id="focusToggle" /></label>
     </div>
   </aside>
@@ -395,10 +399,10 @@
   ];
   const SESSIONS = [1, 3, 5, 10, 0]; // minutes, 0 = open-ended
   const SKIES = [
-    { id: "day", name: "Day", swatch: "linear-gradient(160deg,#5fb4ef,#eef7ff)" },
-    { id: "dawn", name: "Dawn", swatch: "linear-gradient(160deg,#f4a79a,#c9e4f8)" },
-    { id: "dusk", name: "Dusk", swatch: "linear-gradient(160deg,#33407e,#8a6bb0,#f1a7a0)" },
-    { id: "night", name: "Night", swatch: "linear-gradient(160deg,#070e27,#2c4677)" },
+    { id: "day", top: "#5fb4ef", name: "Day", swatch: "linear-gradient(160deg,#5fb4ef,#eef7ff)" },
+    { id: "dawn", top: "#f4a79a", name: "Dawn", swatch: "linear-gradient(160deg,#f4a79a,#c9e4f8)" },
+    { id: "dusk", top: "#33407e", name: "Dusk", swatch: "linear-gradient(160deg,#33407e,#8a6bb0,#f1a7a0)" },
+    { id: "night", top: "#070e27", name: "Night", swatch: "linear-gradient(160deg,#070e27,#2c4677)" },
   ];
   const CORNERS = [[20, 220], [20, 20], [220, 20], [220, 220]];
   const TONES = [528, 440, 396, 440];
@@ -561,13 +565,24 @@
     input.addEventListener("change", () => setCustomMinutes(+input.value));
   }
 
+  function applySky() {
+    document.documentElement.dataset.sky = settings.sky;
+    let meta = document.querySelector('meta[name="theme-color"]');
+    if (!meta) {
+      meta = document.createElement("meta");
+      meta.name = "theme-color";
+      document.head.appendChild(meta);
+    }
+    meta.content = (SKIES.find((k) => k.id === settings.sky) || SKIES[0]).top;
+  }
+
   function renderSkies() {
     const el = $("skies");
     el.innerHTML = "";
     SKIES.forEach((s) => {
       el.appendChild(option("sky-opt", `<span class="swatch" style="background:${s.swatch}"></span>${s.name}`, settings.sky === s.id, () => {
         settings.sky = s.id;
-        document.body.dataset.sky = s.id;
+        applySky();
         renderSkies();
         save();
       }));
@@ -657,22 +672,10 @@
     } catch {}
   }
 
-  // iPhones have no vibrate API; toggling a native switch control gives a light haptic tick (iOS 18+)
-  const iosHaptic = (() => {
-    if (navigator.vibrate) return null;
-    const label = document.createElement("label");
-    label.setAttribute("aria-hidden", "true");
-    label.style.cssText = "position:fixed;left:-9999px;opacity:0;pointer-events:none";
-    label.innerHTML = '<input type="checkbox" switch tabindex="-1" />';
-    document.body.appendChild(label);
-    return label;
-  })();
-
   function buzz() {
     if (!settings.haptic) return;
     try {
       if (navigator.vibrate) navigator.vibrate(60);
-      else if (iosHaptic) iosHaptic.click();
     } catch {}
   }
 
@@ -863,7 +866,9 @@
   });
 
   // ---------- init ----------
-  document.body.dataset.sky = settings.sky;
+  applySky();
+  // iPhones don't let websites vibrate, so only offer it where it works
+  $("hapticRow").hidden = !navigator.vibrate;
   buildSky();
   renderPresets();
   renderSliders();

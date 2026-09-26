@@ -19,6 +19,26 @@
     document.documentElement.setAttribute("data-sky",
       (saved && saved.sky) || (matchMedia("(prefers-color-scheme: dark)").matches ? "night" : "day"));
   } catch (e) {}
+
+  // Size the page to the space the phone really gives it. Opened from the home screen, some iPhones
+  // start the page below the clock but still report the clock's height as an inset; counting it
+  // again pushed the title down and made the page taller than the screen.
+  (function () {
+    var root = document.documentElement;
+    function fit() {
+      root.style.setProperty("--app-h", window.innerHeight + "px");
+      var standalone = navigator.standalone === true ||
+        (window.matchMedia && matchMedia("(display-mode: standalone)").matches);
+      var screenLong = Math.max(screen.width, screen.height);
+      var viewLong = Math.max(window.innerWidth, window.innerHeight);
+      var belowBars = standalone && screenLong - viewLong > 20;
+      root.classList.toggle("standalone", !!standalone);
+      root.style.setProperty("--inset-top", belowBars ? "0px" : "env(safe-area-inset-top, 0px)");
+      root.style.setProperty("--inset-bottom", belowBars ? "0px" : "env(safe-area-inset-bottom, 0px)");
+    }
+    fit();
+    window.addEventListener("resize", fit);
+  })();
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -77,10 +97,12 @@
   html { height: 100%; background: var(--sky-top); }
   /* one-screen app: the square shrinks on short screens so everything fits without scrolling */
   :root {
-    --safe-y: calc(env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px));
-    --box: min(82vw, 480px, calc(100vh - 390px - var(--safe-y)));
+    /* the fit script below replaces these with measured values on the real device */
+    --inset-top: env(safe-area-inset-top, 0px);
+    --inset-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-y: calc(var(--inset-top) + var(--inset-bottom));
+    --box: min(82vw, 480px, calc(var(--app-h, 100vh) - 390px - var(--safe-y)));
   }
-  @supports (height: 100dvh) { :root { --box: min(82vw, 480px, calc(100dvh - 390px - var(--safe-y))); } }
   body {
     font-family: var(--sans);
     color: var(--ink);
@@ -132,7 +154,7 @@
   .topbar {
     position: relative; z-index: 2;
     display: flex; align-items: center; justify-content: space-between; gap: 16px;
-    padding: max(20px, calc(env(safe-area-inset-top, 0px) + 6px)) clamp(16px, 4vw, 48px) 0;
+    padding: max(20px, calc(var(--inset-top) + 6px)) clamp(16px, 4vw, 48px) 0;
   }
   h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(24px, 3vw, 30px); letter-spacing: -0.01em; }
   h1 em { font-style: italic; font-weight: 300; color: var(--accent); transition: color 0.8s; }
@@ -151,7 +173,7 @@
     position: relative; z-index: 1;
     flex: 1; min-height: 0;
     display: grid; justify-items: center; align-content: center; gap: clamp(14px, 2.6vh, 26px);
-    padding: 8px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+    padding: 8px 16px calc(16px + var(--inset-bottom));
   }
   .box-wrap { position: relative; width: var(--box); max-width: 100%; aspect-ratio: 1; container-type: inline-size; }
   .box-wrap svg { width: 100%; height: 100%; overflow: visible; }
@@ -209,9 +231,8 @@
   /* very short screens (iPhone SE, landscape): drop the tagline rather than cramp the square */
   @media (max-height: 680px) {
     .tagline { display: none; }
-    :root { --box: min(82vw, 480px, calc(100vh - 330px - var(--safe-y))); }
+    :root { --box: min(82vw, 480px, calc(var(--app-h, 100vh) - 330px - var(--safe-y))); }
   }
-  @supports (height: 100dvh) { @media (max-height: 680px) { :root { --box: min(82vw, 480px, calc(100dvh - 330px - var(--safe-y))); } } }
   .tagline { font-family: var(--serif); font-style: italic; font-weight: 300; font-size: 16px; color: var(--ink-soft); text-align: center; }
   .hint { font-size: 12px; color: var(--ink-faint); }
   /* keyboard shortcuts mean nothing on touch-only devices */
@@ -229,7 +250,7 @@
     background: var(--glass); border-left: 1px solid var(--glass-edge);
     backdrop-filter: blur(26px) saturate(1.2); -webkit-backdrop-filter: blur(26px) saturate(1.2);
     box-shadow: -20px 0 60px rgba(10, 30, 60, 0.12);
-    padding: max(24px, calc(env(safe-area-inset-top, 0px) + 10px)) 32px calc(40px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 34px; align-content: start;
+    padding: max(24px, calc(var(--inset-top) + 10px)) 32px calc(40px + var(--inset-bottom)); display: grid; gap: 34px; align-content: start;
     transform: translateX(105%); transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), background 0.8s;
   }
   body.settings-open .drawer { transform: none; }
@@ -328,6 +349,8 @@
   /* opened from the home screen: no Safari bars, so the sky can run edge to edge */
   @media (display-mode: standalone) { .edge-fade { display: none; } }
   :root.standalone .edge-fade { display: none; }
+  /* no Safari bars to upset here, so lock scrolling: the page can never slide and show the background */
+  :root.standalone, :root.standalone body { height: 100%; overflow: hidden; overscroll-behavior: none; }
 
   /* phones: Safari's bars stay --sky-top, so overlays must not tint the screen edges */
   @media (hover: none) and (pointer: coarse) {

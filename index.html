@@ -56,7 +56,8 @@
 
   * { box-sizing: border-box; margin: 0; }
   /* Safari colors both of its bars from this one color, so it matches the top of the sky */
-  html { min-height: 100%; background: var(--sky-top); transition: background 0.8s; }
+  /* no transition here: Safari reads this color for its bars the moment the sky changes */
+  html { min-height: 100%; background: var(--sky-top); }
   body {
     font-family: var(--sans);
     color: var(--ink);
@@ -593,6 +594,11 @@
       el.appendChild(option("sky-opt", `<span class="swatch" style="background:${s.swatch}"></span>${s.name}`, settings.sky === s.id, () => {
         settings.sky = s.id;
         applySky();
+        // nudge Safari to re-read its bar color (it otherwise waits for a reload)
+        requestAnimationFrame(() => {
+          window.scrollBy(0, 1);
+          requestAnimationFrame(() => window.scrollBy(0, -1));
+        });
         renderSkies();
         save();
       }));

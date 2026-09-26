@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=4" />
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=5" />
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png" />
 <link rel="manifest" href="manifest.webmanifest" />
 <script>
@@ -22,8 +22,7 @@
 
   // Size the page to the height the phone really gives it (its numbers settle only after launch, so
   // measure repeatedly). Opened from the home screen, the user's iPhone draws the page from the top of
-  // the screen, under the clock, but stops it short of the bottom; the phone paints that leftover strip
-  // itself in the html background color, which home screen mode sets to the sky's bottom color.
+  // the screen, under the clock, but stops it short of the bottom and paints that strip itself.
   (function () {
     var root = document.documentElement;
     try { history.scrollRestoration = "manual"; } catch (e) {}
@@ -43,9 +42,6 @@
       root.style.setProperty("--app-h", h + "px");
       var standalone = isStandalone();
       root.classList.toggle("standalone", !!standalone);
-      // the phone paints the strip below the page in this color (and may use theme-color for it)
-      var meta = document.querySelector('meta[name="theme-color"]');
-      if (standalone && meta) meta.content = getComputedStyle(root).getPropertyValue("--sky-low").trim();
       // home screen mode always opens at the top (the phone otherwise restores an old scroll position)
       if (standalone && (window.scrollY || document.documentElement.scrollTop)) window.scrollTo(0, 0);
     }
@@ -117,7 +113,7 @@
     --inset-top: env(safe-area-inset-top, 0px);
     --inset-bottom: env(safe-area-inset-bottom, 0px);
     --safe-y: calc(var(--inset-top) + var(--inset-bottom));
-    --box: min(82vw, 480px, calc(var(--app-h, 100vh) - 390px - var(--safe-y)));
+    --box: min(82vw, 480px, calc(var(--app-h, 100vh) - 410px - var(--safe-y)));
   }
   body {
     font-family: var(--sans);
@@ -170,7 +166,7 @@
   .topbar {
     position: relative; z-index: 2;
     display: flex; align-items: center; justify-content: space-between; gap: 16px;
-    padding: max(20px, calc(var(--inset-top) + 6px)) clamp(16px, 4vw, 48px) 0;
+    padding: max(20px, calc(var(--inset-top) + 26px)) clamp(16px, 4vw, 48px) 0;
   }
   h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(24px, 3vw, 30px); letter-spacing: -0.01em; }
   h1 em { font-style: italic; font-weight: 300; color: var(--accent); transition: color 0.8s; }
@@ -247,7 +243,7 @@
   /* very short screens (iPhone SE, landscape): drop the tagline rather than cramp the square */
   @media (max-height: 680px) {
     .tagline { display: none; }
-    :root { --box: min(82vw, 480px, calc(var(--app-h, 100vh) - 330px - var(--safe-y))); }
+    :root { --box: min(82vw, 480px, calc(var(--app-h, 100vh) - 350px - var(--safe-y))); }
   }
   .tagline { font-family: var(--serif); font-style: italic; font-weight: 300; font-size: 16px; color: var(--ink-soft); text-align: center; }
   .hint { font-size: 12px; color: var(--ink-faint); }
@@ -362,13 +358,10 @@
   .summary-card h2 { font-family: var(--serif); font-weight: 400; font-size: 34px; font-style: italic; }
   .summary-card p { color: var(--ink-soft); line-height: 1.6; }
 
-  /* opened from the home screen: no Safari bars, so the sky can run edge to edge */
-  @media (display-mode: standalone) { .edge-fade { display: none; } }
-  :root.standalone .edge-fade { display: none; }
-  /* no Safari bars to upset here, so lock scrolling: the page can never slide and show the background */
+  /* home screen mode: the edge fades stay on, because the phone paints the strip below the page in the
+     html color it read at launch (--sky-top), before any script can run; the sky fades into that color.
+     No Safari bars to upset here, so lock scrolling: the page can never slide and show the background. */
   :root.standalone, :root.standalone body { height: 100%; overflow: hidden; overscroll-behavior: none; }
-  /* the phone paints the strip below the page in this color, so match the bottom of the sky */
-  :root.standalone { background: var(--sky-low); }
 
   /* phones: Safari's bars stay --sky-top, so overlays must not tint the screen edges */
   @media (hover: none) and (pointer: coarse) {
@@ -688,8 +681,7 @@
       meta.name = "theme-color";
       document.head.appendChild(meta);
     }
-    const sky = SKIES.find((k) => k.id === settings.sky) || SKIES[0];
-    meta.content = document.documentElement.classList.contains("standalone") ? getComputedStyle(document.documentElement).getPropertyValue("--sky-low").trim() || sky.top : sky.top;
+    meta.content = (SKIES.find((k) => k.id === settings.sky) || SKIES[0]).top;
   }
 
   // Safari on iPhone only updates its top and bottom bars when you reload the page yourself

@@ -4,6 +4,14 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Skybox Breathing</title>
+<!-- home screen: named "Skybox", opens full screen with the sky behind the status bar -->
+<meta name="apple-mobile-web-app-title" content="Skybox" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png" />
+<link rel="manifest" href="manifest.webmanifest" />
 <script>
   // set the saved sky before the first paint, so Safari never tints its bars with the default sky
   try {
@@ -313,6 +321,10 @@
   .summary-card h2 { font-family: var(--serif); font-weight: 400; font-size: 34px; font-style: italic; }
   .summary-card p { color: var(--ink-soft); line-height: 1.6; }
 
+  /* opened from the home screen: no Safari bars, so the sky can run edge to edge */
+  @media (display-mode: standalone) { .edge-fade { display: none; } }
+  :root.standalone .edge-fade { display: none; }
+
   /* phones: Safari's bars stay --sky-top, so overlays must not tint the screen edges */
   @media (hover: none) and (pointer: coarse) {
     .scrim, .summary { background: transparent; }
@@ -618,7 +630,9 @@
     input.addEventListener("change", () => setCustomMinutes(+input.value));
   }
 
-  const isIOSTopLevel = window.self === window.top &&
+  const isStandalone = navigator.standalone === true || matchMedia("(display-mode: standalone)").matches;
+  if (isStandalone) document.documentElement.classList.add("standalone");
+  const isIOSTopLevel = !isStandalone && window.self === window.top &&
     (/iPhone|iPad|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1));
 
   function applySky() {

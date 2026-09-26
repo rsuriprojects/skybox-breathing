@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=3" />
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png" />
 <link rel="manifest" href="manifest.webmanifest" />
 <script>
@@ -20,24 +20,34 @@
       (saved && saved.sky) || (matchMedia("(prefers-color-scheme: dark)").matches ? "night" : "day"));
   } catch (e) {}
 
-  // Size the page to the space the phone really gives it. Opened from the home screen, some iPhones
-  // start the page below the clock but still report the clock's height as an inset; counting it
-  // again pushed the title down and made the page taller than the screen.
+  // Size the page to the space the phone really gives it. Opened from the home screen, the user's
+  // iPhone starts the page below the clock (the page reaches the bottom of the screen) but still
+  // reports the clock's height as a top inset; counting it again pushed the title down and made the
+  // page taller than the screen. The phone's numbers settle only after launch, so measure repeatedly.
   (function () {
     var root = document.documentElement;
+    try { history.scrollRestoration = "manual"; } catch (e) {}
+    function isStandalone() {
+      return navigator.standalone === true || (window.matchMedia &&
+        (matchMedia("(display-mode: standalone)").matches || matchMedia("(display-mode: fullscreen)").matches));
+    }
     function fit() {
-      root.style.setProperty("--app-h", window.innerHeight + "px");
-      var standalone = navigator.standalone === true ||
-        (window.matchMedia && matchMedia("(display-mode: standalone)").matches);
+      var h = window.visualViewport ? Math.round(window.visualViewport.height) : window.innerHeight;
+      root.style.setProperty("--app-h", h + "px");
+      var standalone = isStandalone();
       var screenLong = Math.max(screen.width, screen.height);
-      var viewLong = Math.max(window.innerWidth, window.innerHeight);
-      var belowBars = standalone && screenLong - viewLong > 20;
+      var viewLong = Math.max(window.innerWidth, h);
+      var belowClock = standalone && screenLong - viewLong > 20;
       root.classList.toggle("standalone", !!standalone);
-      root.style.setProperty("--inset-top", belowBars ? "0px" : "env(safe-area-inset-top, 0px)");
-      root.style.setProperty("--inset-bottom", belowBars ? "0px" : "env(safe-area-inset-bottom, 0px)");
+      root.style.setProperty("--inset-top", belowClock ? "0px" : "env(safe-area-inset-top, 0px)");
+      // home screen mode always opens at the top (the phone otherwise restores an old scroll position)
+      if (standalone && (window.scrollY || document.documentElement.scrollTop)) window.scrollTo(0, 0);
     }
     fit();
-    window.addEventListener("resize", fit);
+    ["resize", "orientationchange", "pageshow", "load"].forEach(function (ev) { window.addEventListener(ev, fit); });
+    if (window.visualViewport) visualViewport.addEventListener("resize", fit);
+    document.addEventListener("DOMContentLoaded", fit);
+    [100, 300, 800, 1500].forEach(function (ms) { setTimeout(fit, ms); });
   })();
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />

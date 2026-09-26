@@ -275,6 +275,7 @@
 
   /* sky: swatch circles */
   .skies { display: flex; gap: 22px; }
+  .sky-hint { font-size: 13px; line-height: 1.5; color: var(--ink-soft); }
   .sky-opt { background: none; border: none; cursor: pointer; display: grid; justify-items: center; gap: 8px; font-size: 12px; font-weight: 500; color: var(--ink-soft); }
   .sky-opt .swatch {
     width: 40px; height: 40px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.6);
@@ -421,6 +422,7 @@
     <div class="group">
       <div class="group-title">Sky</div>
       <div class="skies" id="skies"></div>
+      <p class="sky-hint" id="skyHint" hidden>Tap Safari's reload button to update the top and bottom bars.</p>
     </div>
 
     <div class="group">
@@ -630,7 +632,10 @@
     meta.content = (SKIES.find((k) => k.id === settings.sky) || SKIES[0]).top;
   }
 
+  // Safari on iPhone only updates its top and bottom bars when you reload the page yourself
+  const skyAtLoad = settings.sky;
   function renderSkies() {
+    $("skyHint").hidden = !isIOSTopLevel || settings.sky === skyAtLoad;
     const el = $("skies");
     el.innerHTML = "";
     SKIES.forEach((s) => {
@@ -638,15 +643,6 @@
         settings.sky = s.id;
         applySky();
         renderSkies();
-        // iOS Safari only re-reads its bar color on a fresh page load, and a script reload() doesn't count,
-        // so open the page at a new address for this sky (unless mid-session) and reopen settings
-        if (isIOSTopLevel && !state.started) {
-          save();
-          try { sessionStorage.setItem("skybox-reopen-settings", "1"); } catch {}
-          const url = new URL(location.href);
-          url.searchParams.set("sky", s.id);
-          location.replace(url.href);
-        }
         save();
       }));
     });
@@ -941,12 +937,10 @@
   bindToggles();
   draw(0, 0);
   updateIdle();
-  try {
-    if (sessionStorage.getItem("skybox-reopen-settings")) {
-      sessionStorage.removeItem("skybox-reopen-settings");
-      setDrawer(true);
-    }
-  } catch {}
+  // tidy addresses left over from an earlier version (?sky=…)
+  if (new URLSearchParams(location.search).has("sky")) {
+    try { history.replaceState(null, "", location.pathname + location.hash); } catch {}
+  }
 })();
 </script>
 </body>

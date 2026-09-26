@@ -217,6 +217,20 @@
   }
   .opt:hover { color: var(--ink); }
   .opt[aria-pressed="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+  .custom-len { display: flex; align-items: center; gap: 12px; }
+  .custom-len[hidden] { display: none; }
+  .custom-len .unit { font-size: 14px; color: var(--ink-soft); }
+  .step {
+    width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--track); background: none;
+    cursor: pointer; font-size: 17px; line-height: 1; color: var(--ink-soft); transition: color 0.2s, border-color 0.2s;
+  }
+  .step:hover { color: var(--ink); border-color: var(--accent); }
+  #customMinutes {
+    width: 2.4ch; padding: 0 0 2px; background: none; border: none; border-bottom: 1.5px solid var(--accent);
+    font-family: var(--serif); font-size: 22px; text-align: center; color: var(--ink);
+    font-variant-numeric: tabular-nums; -moz-appearance: textfield; appearance: textfield;
+  }
+  #customMinutes::-webkit-inner-spin-button, #customMinutes::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 
   /* sky: swatch circles */
   .skies { display: flex; gap: 22px; }
@@ -339,6 +353,12 @@
     <div class="group">
       <div class="group-title">Session length</div>
       <div class="inline-opts" id="sessions"></div>
+      <div class="custom-len" id="customLen" hidden>
+        <button class="step" type="button" id="customMinus" aria-label="One minute less">−</button>
+        <input type="number" id="customMinutes" min="1" max="60" step="1" inputmode="numeric" aria-label="Custom session length in minutes" />
+        <button class="step" type="button" id="customPlus" aria-label="One minute more">+</button>
+        <span class="unit">minutes</span>
+      </div>
     </div>
 
     <div class="group">
@@ -383,7 +403,7 @@
   const MIN_SCALE = 0.7, MAX_SCALE = 1;
 
   const prefersDark = matchMedia("(prefers-color-scheme: dark)").matches;
-  const defaults = { d: [4, 4, 4, 4], session: 5, sky: prefersDark ? "night" : "day", linked: true, sound: true, haptic: true, focus: true };
+  const defaults = { d: [4, 4, 4, 4], session: 5, custom: false, customMin: 2, sky: prefersDark ? "night" : "day", linked: true, sound: true, haptic: true, focus: true };
   const settings = load();
 
   // ---------- persistence ----------
@@ -503,13 +523,40 @@
     const el = $("sessions");
     el.innerHTML = "";
     SESSIONS.forEach((m) => {
-      el.appendChild(option("opt", m ? `${m} min` : "Open-ended", settings.session === m, () => {
+      el.appendChild(option("opt", m ? `${m} min` : "Open-ended", !settings.custom && settings.session === m, () => {
+        settings.custom = false;
         settings.session = m;
         renderSessions();
         updateIdle();
         save();
       }));
     });
+    el.appendChild(option("opt", "Custom", settings.custom, () => {
+      settings.custom = true;
+      setCustomMinutes(settings.customMin);
+      renderSessions();
+      $("customMinutes").focus();
+    }));
+    $("customLen").hidden = !settings.custom;
+    $("customMinutes").value = settings.customMin;
+  }
+
+  function setCustomMinutes(v, keepField) {
+    v = Math.min(60, Math.max(1, Math.round(v) || 1));
+    settings.customMin = v;
+    settings.session = v;
+    if (!keepField) $("customMinutes").value = v;
+    updateIdle();
+    save();
+  }
+
+  function bindCustomLength() {
+    const input = $("customMinutes");
+    $("customMinus").addEventListener("click", () => setCustomMinutes(settings.customMin - 1));
+    $("customPlus").addEventListener("click", () => setCustomMinutes(settings.customMin + 1));
+    // apply while typing, then tidy the field (e.g. empty or 99) when focus leaves
+    input.addEventListener("input", () => { if (input.value !== "") setCustomMinutes(+input.value, true); });
+    input.addEventListener("change", () => setCustomMinutes(+input.value));
   }
 
   function renderSkies() {
@@ -745,6 +792,7 @@
   renderPresets();
   renderSliders();
   renderSessions();
+  bindCustomLength();
   renderSkies();
   bindToggles();
   draw(0, 0);

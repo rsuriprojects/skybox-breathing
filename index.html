@@ -28,14 +28,24 @@
     var root = document.documentElement;
     try { history.scrollRestoration = "manual"; } catch (e) {}
     function isStandalone() {
-      return navigator.standalone === true || (window.matchMedia &&
-        (matchMedia("(display-mode: standalone)").matches || matchMedia("(display-mode: fullscreen)").matches));
+      if (navigator.standalone === true || (window.matchMedia &&
+          (matchMedia("(display-mode: standalone)").matches || matchMedia("(display-mode: fullscreen)").matches))) return true;
+      // Some iPhones report neither flag for home screen apps. Tell them apart by lost height: opened from
+      // the home screen only the clock's strip (~40–70pt) is missing; in Safari its bars take 100pt or more.
+      var iOS = /iPhone|iPod/.test(navigator.userAgent) ||
+        (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+      if (!iOS || window.self !== window.top) return false;
+      var lost = Math.max(screen.width, screen.height) - Math.max(window.innerWidth, window.innerHeight);
+      return lost >= 30 && lost <= 75;
     }
     function fit() {
       var h = window.visualViewport ? Math.round(window.visualViewport.height) : window.innerHeight;
       root.style.setProperty("--app-h", h + "px");
       var standalone = isStandalone();
       root.classList.toggle("standalone", !!standalone);
+      // the phone paints the strip below the page in this color (and may use theme-color for it)
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (standalone && meta) meta.content = getComputedStyle(root).getPropertyValue("--sky-low").trim();
       // home screen mode always opens at the top (the phone otherwise restores an old scroll position)
       if (standalone && (window.scrollY || document.documentElement.scrollTop)) window.scrollTo(0, 0);
     }
@@ -665,8 +675,8 @@
     input.addEventListener("change", () => setCustomMinutes(+input.value));
   }
 
-  const isStandalone = navigator.standalone === true || matchMedia("(display-mode: standalone)").matches;
-  if (isStandalone) document.documentElement.classList.add("standalone");
+  // decided by the fit script in <head>, which also recognizes home screen mode on phones that hide it
+  const isStandalone = document.documentElement.classList.contains("standalone");
   const isIOSTopLevel = !isStandalone && window.self === window.top &&
     (/iPhone|iPad|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1));
 
@@ -679,7 +689,7 @@
       document.head.appendChild(meta);
     }
     const sky = SKIES.find((k) => k.id === settings.sky) || SKIES[0];
-    meta.content = isStandalone ? getComputedStyle(document.documentElement).getPropertyValue("--sky-low").trim() || sky.top : sky.top;
+    meta.content = document.documentElement.classList.contains("standalone") ? getComputedStyle(document.documentElement).getPropertyValue("--sky-low").trim() || sky.top : sky.top;
   }
 
   // Safari on iPhone only updates its top and bottom bars when you reload the page yourself

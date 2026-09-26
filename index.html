@@ -60,7 +60,8 @@
   body {
     font-family: var(--sans);
     color: var(--ink);
-    background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 55%, var(--sky-low) 100%);
+    /* the fixed .sky layer paints the gradient; this solid color only shows in the strip Safari leaves under its toolbar */
+    background: var(--sky-top);
     min-height: 100vh;
     overflow-x: hidden;
     transition: color 0.8s ease;

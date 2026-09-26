@@ -76,8 +76,11 @@
   /* no overflow lock: Safari seems to stop re-reading its bar colors on a locked page; the layout just fits instead */
   html { height: 100%; background: var(--sky-top); }
   /* one-screen app: the square shrinks on short screens so everything fits without scrolling */
-  :root { --box: min(82vw, 480px, calc(100vh - 400px)); }
-  @supports (height: 100dvh) { :root { --box: min(82vw, 480px, calc(100dvh - 400px)); } }
+  :root {
+    --safe-y: calc(env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px));
+    --box: min(82vw, 480px, calc(100vh - 390px - var(--safe-y)));
+  }
+  @supports (height: 100dvh) { :root { --box: min(82vw, 480px, calc(100dvh - 390px - var(--safe-y))); } }
   body {
     font-family: var(--sans);
     color: var(--ink);
@@ -103,7 +106,7 @@
   }
   @keyframes twinkle { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
   /* Safari's bars use --sky-top, so both screen edges stay solid --sky-top: clouds and stars fade out
-     before reaching them, and the bottom's last 90px are solid because Safari stops drawing just above its buttons */
+     before reaching them, and the bottom's last ~30px are solid because Safari stops drawing just above its buttons */
   .edge-fade {
     position: fixed; inset: 0; z-index: 0; pointer-events: none;
     background:
@@ -113,9 +116,10 @@
         color-mix(in srgb, var(--sky-top) 0%, transparent) 150px) top / 100% 150px no-repeat,
       linear-gradient(180deg,
         color-mix(in srgb, var(--sky-top) 0%, transparent) 0%,
-        color-mix(in srgb, var(--sky-top) 22%, transparent) 25%,
-        color-mix(in srgb, var(--sky-top) 60%, transparent) 48%,
-        var(--sky-top) 65%, var(--sky-top) 100%) bottom / 100% 260px no-repeat;
+        color-mix(in srgb, var(--sky-top) 15%, transparent) 30%,
+        color-mix(in srgb, var(--sky-top) 45%, transparent) 55%,
+        color-mix(in srgb, var(--sky-top) 80%, transparent) 75%,
+        var(--sky-top) 88%, var(--sky-top) 100%) bottom / 100% 240px no-repeat;
   }
   .cloud {
     position: absolute; border-radius: 50%; background: var(--cloud);
@@ -128,7 +132,7 @@
   .topbar {
     position: relative; z-index: 2;
     display: flex; align-items: center; justify-content: space-between; gap: 16px;
-    padding: calc(28px + env(safe-area-inset-top, 0px)) clamp(16px, 4vw, 48px) 0;
+    padding: max(20px, calc(env(safe-area-inset-top, 0px) + 6px)) clamp(16px, 4vw, 48px) 0;
   }
   h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(24px, 3vw, 30px); letter-spacing: -0.01em; }
   h1 em { font-style: italic; font-weight: 300; color: var(--accent); transition: color 0.8s; }
@@ -205,9 +209,9 @@
   /* very short screens (iPhone SE, landscape): drop the tagline rather than cramp the square */
   @media (max-height: 680px) {
     .tagline { display: none; }
-    :root { --box: min(82vw, 480px, calc(100vh - 340px)); }
+    :root { --box: min(82vw, 480px, calc(100vh - 330px - var(--safe-y))); }
   }
-  @supports (height: 100dvh) { @media (max-height: 680px) { :root { --box: min(82vw, 480px, calc(100dvh - 340px)); } } }
+  @supports (height: 100dvh) { @media (max-height: 680px) { :root { --box: min(82vw, 480px, calc(100dvh - 330px - var(--safe-y))); } } }
   .tagline { font-family: var(--serif); font-style: italic; font-weight: 300; font-size: 16px; color: var(--ink-soft); text-align: center; }
   .hint { font-size: 12px; color: var(--ink-faint); }
   /* keyboard shortcuts mean nothing on touch-only devices */
@@ -225,7 +229,7 @@
     background: var(--glass); border-left: 1px solid var(--glass-edge);
     backdrop-filter: blur(26px) saturate(1.2); -webkit-backdrop-filter: blur(26px) saturate(1.2);
     box-shadow: -20px 0 60px rgba(10, 30, 60, 0.12);
-    padding: calc(28px + env(safe-area-inset-top, 0px)) 32px calc(40px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 34px; align-content: start;
+    padding: max(24px, calc(env(safe-area-inset-top, 0px) + 10px)) 32px calc(40px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 34px; align-content: start;
     transform: translateX(105%); transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), background 0.8s;
   }
   body.settings-open .drawer { transform: none; }

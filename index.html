@@ -4,6 +4,14 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Skybox Breathing</title>
+<script>
+  // set the saved sky before the first paint, so Safari never tints its bars with the default sky
+  try {
+    var saved = JSON.parse(localStorage.getItem("skybox-settings") || "null");
+    document.documentElement.setAttribute("data-sky",
+      (saved && saved.sky) || (matchMedia("(prefers-color-scheme: dark)").matches ? "night" : "day"));
+  } catch (e) {}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300;1,9..144,400&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -87,15 +95,20 @@
     animation: twinkle var(--d, 4s) ease-in-out infinite var(--delay, 0s);
   }
   @keyframes twinkle { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
-  /* Safari stops drawing just above its bottom buttons; the last 90px are solid so that cut is invisible */
-  .bottom-fade {
-    position: fixed; left: 0; right: 0; bottom: 0; height: 260px; z-index: 0; pointer-events: none;
-    background: linear-gradient(180deg,
-      color-mix(in srgb, var(--sky-top) 0%, transparent) 0%,
-      color-mix(in srgb, var(--sky-top) 22%, transparent) 25%,
-      color-mix(in srgb, var(--sky-top) 60%, transparent) 48%,
-      var(--sky-top) 65%,
-      var(--sky-top) 100%);
+  /* Safari's bars use --sky-top, so both screen edges stay solid --sky-top: clouds and stars fade out
+     before reaching them, and the bottom's last 90px are solid because Safari stops drawing just above its buttons */
+  .edge-fade {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background:
+      linear-gradient(180deg,
+        var(--sky-top) 0px, var(--sky-top) 44px,
+        color-mix(in srgb, var(--sky-top) 45%, transparent) 90px,
+        color-mix(in srgb, var(--sky-top) 0%, transparent) 150px) top / 100% 150px no-repeat,
+      linear-gradient(180deg,
+        color-mix(in srgb, var(--sky-top) 0%, transparent) 0%,
+        color-mix(in srgb, var(--sky-top) 22%, transparent) 25%,
+        color-mix(in srgb, var(--sky-top) 60%, transparent) 48%,
+        var(--sky-top) 65%, var(--sky-top) 100%) bottom / 100% 260px no-repeat;
   }
   .cloud {
     position: absolute; border-radius: 50%; background: var(--cloud);
@@ -300,6 +313,20 @@
   .summary-card h2 { font-family: var(--serif); font-weight: 400; font-size: 34px; font-style: italic; }
   .summary-card p { color: var(--ink-soft); line-height: 1.6; }
 
+  /* phones: Safari's bars stay --sky-top, so overlays must not tint the screen edges */
+  @media (hover: none) and (pointer: coarse) {
+    .scrim, .summary { background: transparent; }
+    .drawer {
+      background:
+        linear-gradient(180deg,
+          var(--sky-top) 0px, var(--sky-top) 10px,
+          color-mix(in srgb, var(--sky-top) 0%, transparent) 90px,
+          color-mix(in srgb, var(--sky-top) 0%, transparent) calc(100% - 170px),
+          var(--sky-top) calc(100% - 90px), var(--sky-top) 100%),
+        var(--glass);
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .cloud, .star { animation: none; }
     .drawer, .scrim, .summary, .fadeable { transition: none; }
@@ -311,7 +338,7 @@
     <div class="stars" id="stars"></div>
     <div id="clouds"></div>
   </div>
-  <div class="bottom-fade" aria-hidden="true"></div>
+  <div class="edge-fade" aria-hidden="true"></div>
 
   <header class="topbar fadeable">
     <h1>Sky<em>box</em> breathing</h1>
@@ -477,7 +504,7 @@
       const w = 180 + Math.random() * 280;
       c.style.width = w + "px";
       c.style.height = w * (0.28 + Math.random() * 0.15) + "px";
-      c.style.top = 4 + Math.random() * 80 + "%";
+      c.style.top = 14 + Math.random() * 56 + "%";
       const dur = 90 + Math.random() * 110;
       c.style.animationDuration = dur + "s";
       c.style.animationDelay = -Math.random() * dur + "s";

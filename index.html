@@ -262,7 +262,8 @@
     background: var(--glass); border-left: 1px solid var(--glass-edge);
     backdrop-filter: blur(26px) saturate(1.2); -webkit-backdrop-filter: blur(26px) saturate(1.2);
     box-shadow: -20px 0 60px rgba(10, 30, 60, 0.12);
-    padding: max(24px, calc(var(--inset-top) + 10px)) 32px calc(40px + var(--inset-bottom)); display: grid; gap: 34px; align-content: start;
+    /* same top spacing as the main title, so the header clears the blur the phone draws under the clock */
+    padding: max(20px, calc(var(--inset-top) + 26px)) 32px calc(40px + var(--inset-bottom)); display: grid; gap: 34px; align-content: start;
     transform: translateX(105%); transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), background 0.8s;
   }
   body.settings-open .drawer { transform: none; }

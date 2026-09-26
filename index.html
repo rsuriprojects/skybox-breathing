@@ -588,6 +588,8 @@
           updateIdle();
         }
         if (key === "focus") document.body.classList.toggle("focus", t.checked && state.running);
+        if (key === "sound" && t.checked) { unlockAudio(); chime(1); if (!state.running && silentLoop) silentLoop.pause(); }
+        if (key === "haptic" && t.checked) buzz();
         save();
       });
     });
@@ -601,12 +603,44 @@
     save();
   }
 
-  // ---------- audio ----------
-  let audioCtx = null;
-  function chime(phase) {
+  // ---------- audio & haptics ----------
+  // Phones only allow sound that is unlocked during a tap, so unlockAudio() runs from Begin/Resume.
+  let audioCtx = null, silentLoop = null;
+
+  function unlockAudio() {
     if (!settings.sound) return;
     try {
+      // iOS 17+: play through the mute switch like a media app would
+      if (navigator.audioSession) navigator.audioSession.type = "playback";
       audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state !== "running") audioCtx.resume();
+      const src = audioCtx.createBufferSource();
+      src.buffer = audioCtx.createBuffer(1, 1, 22050);
+      src.connect(audioCtx.destination);
+      src.start(0);
+      // older iPhones: a silent looping <audio> keeps sound in "media" mode instead of ringer mode
+      if (!navigator.audioSession) {
+        silentLoop = silentLoop || Object.assign(new Audio(silentWav()), { loop: true });
+        silentLoop.play().catch(() => {});
+      }
+    } catch {}
+  }
+
+  function silentWav() {
+    const rate = 8000, n = rate / 2, buf = new DataView(new ArrayBuffer(44 + n));
+    const str = (o, t) => [...t].forEach((c, i) => buf.setUint8(o + i, c.charCodeAt(0)));
+    str(0, "RIFF"); buf.setUint32(4, 36 + n, true); str(8, "WAVEfmt ");
+    buf.setUint32(16, 16, true); buf.setUint16(20, 1, true); buf.setUint16(22, 1, true);
+    buf.setUint32(24, rate, true); buf.setUint32(28, rate, true); buf.setUint16(32, 1, true); buf.setUint16(34, 8, true);
+    str(36, "data"); buf.setUint32(40, n, true);
+    for (let i = 0; i < n; i++) buf.setUint8(44 + i, 128);
+    return URL.createObjectURL(new Blob([buf], { type: "audio/wav" }));
+  }
+
+  function chime(phase) {
+    if (!settings.sound || !audioCtx) return;
+    try {
+      if (audioCtx.state !== "running") audioCtx.resume();
       const t = audioCtx.currentTime;
       [1, 2].forEach((mult, k) => {
         const osc = audioCtx.createOscillator();
@@ -614,7 +648,7 @@
         osc.type = "sine";
         osc.frequency.value = TONES[phase] * mult;
         gain.gain.setValueAtTime(0, t);
-        gain.gain.linearRampToValueAtTime(k ? 0.03 : 0.12, t + 0.04);
+        gain.gain.linearRampToValueAtTime(k ? 0.06 : 0.22, t + 0.04);
         gain.gain.exponentialRampToValueAtTime(0.0001, t + 1.6);
         osc.connect(gain).connect(audioCtx.destination);
         osc.start(t);
@@ -622,9 +656,46 @@
       });
     } catch {}
   }
+
+  // iPhones have no vibrate API; toggling a native switch control gives a light haptic tick (iOS 18+)
+  const iosHaptic = (() => {
+    if (navigator.vibrate) return null;
+    const label = document.createElement("label");
+    label.setAttribute("aria-hidden", "true");
+    label.style.cssText = "position:fixed;left:-9999px;opacity:0;pointer-events:none";
+    label.innerHTML = '<input type="checkbox" switch tabindex="-1" />';
+    document.body.appendChild(label);
+    return label;
+  })();
+
   function buzz() {
-    if (settings.haptic && navigator.vibrate) navigator.vibrate(40);
+    if (!settings.haptic) return;
+    try {
+      if (navigator.vibrate) navigator.vibrate(60);
+      else if (iosHaptic) iosHaptic.click();
+    } catch {}
   }
+
+  // keep the phone screen on during a session so the timer and sound don't stop
+  let wakeLock = null;
+  async function keepAwake(on) {
+    try {
+      if (on && !wakeLock && navigator.wakeLock) {
+        wakeLock = await navigator.wakeLock.request("screen");
+        wakeLock.addEventListener("release", () => { wakeLock = null; });
+      } else if (!on && wakeLock) {
+        await wakeLock.release();
+        wakeLock = null;
+      }
+    } catch {}
+  }
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && state.running) {
+      keepAwake(true);
+      if (audioCtx && audioCtx.state !== "running") audioCtx.resume();
+    }
+  });
 
   // ---------- breathing engine ----------
   // All timing uses performance.now() so phase boundaries and the countdown share one clock.
@@ -637,7 +708,8 @@
   const sessionSeconds = () => settings.session * 60;
 
   function start() {
-    if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+    unlockAudio();
+    keepAwake(true);
     const now = performance.now();
     if (!state.started) {
       Object.assign(state, { started: true, phase: 0, phaseStart: now, elapsed: 0, cycles: 0 });
@@ -659,6 +731,8 @@
   function stopTimers() {
     cancelAnimationFrame(state.raf);
     clearInterval(state.timer);
+    keepAwake(false);
+    if (silentLoop) silentLoop.pause();
   }
 
   function pause() {

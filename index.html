@@ -55,8 +55,8 @@
   }
 
   * { box-sizing: border-box; margin: 0; }
-  /* html carries the sky color too, so Safari's bars and overscroll never show white */
-  html { min-height: 100%; background: var(--sky-top); overscroll-behavior-y: none; transition: background 0.8s; }
+  /* html carries the sky's bottom color, which Safari shows behind its bottom bar; the top is covered by the page */
+  html { min-height: 100%; background: var(--sky-low); transition: background 0.8s; }
   body {
     font-family: var(--sans);
     color: var(--ink);
